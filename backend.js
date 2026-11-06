@@ -80,7 +80,8 @@ function supabaseBackend(cfg) {
 
     async saveProfil(f) {
       const champs = { nom: f.nom, tel: f.tel, commune: f.commune, ile: f.ile, type: f.type, ntahiti: f.ntahiti || null };
-      const { error } = await sb.from("profiles").update(champs).eq("id", user.id);
+      // upsert : crée le profil s'il n'existe pas encore, sinon le met à jour
+      const { error } = await sb.from("profiles").upsert({ id: user.id, ...champs }, { onConflict: "id" });
       err(error); await chargerProfil();
     },
     async sendId(file, idType) {
