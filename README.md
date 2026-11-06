@@ -1,47 +1,84 @@
 # 🌺 Pièce Fenua
 
 **Le moteur de recherche des pièces détachées disponibles à Tahiti et dans les îles.**
-Les fournisseurs, casses et revendeurs publient leur stock ; le client trouve la pièce, compare les prix et contacte le vendeur (WhatsApp, appel, réservation).
+Les fournisseurs, les casses et les revendeurs publient leur stock. Le client trouve la pièce, compare les prix et contacte le vendeur par WhatsApp ou par téléphone.
 
-> Version de démonstration : tout fonctionne dans le navigateur, les données restent sur l'appareil. Vendeurs et prix fictifs.
+L'app fonctionne de deux façons :
+- **Mode démo** (par défaut) : tout reste sur le téléphone, avec des vendeurs fictifs. C'est pratique pour montrer l'app.
+- **Mode réel** : les comptes, les annonces et les documents sont partagés par tous les utilisateurs, grâce à **Supabase** (offre gratuite).
 
 ## Catégories
-🚗 Voiture · 🚚 Camion · 🏗️ Drague / pelle · 🚜 Engins Case / tracteur · 🏍️ Moto · 🛵 Scooter · 🚲 Vélo électrique · 🚤 Bateau / hors-bord · 🌊 Jet-ski
+Voiture · Camion · Drague / pelle · Engins Case / tracteur · Moto · Scooter · Vélo électrique · Bateau / hors-bord · Jet-ski
 
 ## Fonctions
-- **Recherche** par nom, référence, marque ou modèle, avec filtres : catégorie, neuf / occasion, île, en stock, tri par prix.
-- **Demande groupée** : la demande d'une pièce introuvable part chez tous les fournisseurs de la catégorie.
-- **Vendre** : mise en ligne d'une pièce (magasin pro, casse ou particulier).
-- **🛡 Anti-vol (version allégée)** pour toute pièce d'**occasion / revente** :
-  - **toujours obligatoire** : la **pièce d'identité** du vendeur (CNI, passeport, permis) et une **déclaration sur l'honneur** ;
-  - **facultatif sous 50 000 F** : le n° de série / VIN et un justificatif (la **carte grise**, le **ticket / la facture d'achat**, ou pour une casse le certificat de destruction). Avec justificatif, l'annonce reçoit le badge **✔ Provenance vérifiée**. Sans justificatif, elle reçoit le badge **Vendeur identifié** ;
-  - **à partir de 50 000 F** (moteurs, hors-bord, jet-ski…) : le n° de série et le justificatif sont **obligatoires**. Le seuil se règle dans `app.js` (`SEUIL`).
-  
-  L'annonce reste **en vérification** jusqu'à ce qu'un modérateur valide la pièce d'identité. Un particulier ne peut publier que de l'occasion.
-- **🚨 Signaler un vol** : le n° de série / VIN volé entre dans une liste de surveillance. Toute annonce correspondante est retirée des résultats et bloquée.
-- **Vérification** : l'espace modérateur où l'on contrôle les documents, puis valide ou refuse.
-- **PWA** : installable sur le téléphone et utilisable hors ligne.
+- **Recherche** avec les filtres catégorie, neuf / occasion, île et en stock. Les annonces s'affichent **avec la photo de la pièce**.
+- **Comptes** : inscription par e-mail et mot de passe, profil (acheteur, particulier, professionnel avec N° Tahiti, ou casse), mot de passe oublié, suppression du compte.
+- **Pièce d'identité** : on l'envoie une seule fois dans le compte, et seulement pour revendre. Un modérateur la vérifie, puis **le document est effacé**. Le compte reçoit alors le badge « Vendeur identifié ✔ ».
+- **Vendre** : une photo de la pièce (réduite automatiquement à 1000 px, données GPS retirées), le prix, la quantité et la compatibilité.
+- **🛡 Anti-vol** pour l'occasion :
+  - sous 50 000 F : la pièce d'identité suffit. Avec la carte grise ou le ticket d'achat, l'annonce reçoit le badge « Provenance vérifiée » ;
+  - à partir de 50 000 F : le n° de série et le justificatif sont obligatoires, et l'annonce est toujours contrôlée.
+- **🚨 Signaler un vol** : toute annonce qui porte le même n° de série est **bloquée automatiquement**.
+- **Demande groupée** : une pièce introuvable est demandée à tous les fournisseurs. Les comptes professionnels voient les demandes et y répondent par WhatsApp.
+- **⚑ Signaler une annonce** (photo inappropriée, pièce probablement volée, arnaque…). Il faut être connecté pour signaler, ce qui évite les signalements gratuits.
+- **⛔ Suspension de compte** : le modérateur peut suspendre le compte d'un vendeur qui abuse.
+  - Toutes ses annonces disparaissent immédiatement.
+  - La personne ne peut plus vendre, signaler ni faire de demande, et voit le motif de la suspension dans son compte.
+  - En cas de réactivation, ses annonces repassent par la vérification avant de revenir en ligne.
+  - Le modérateur peut aussi seulement **retirer une photo** ou **retirer une annonce**.
+- **🛡 Vérification** : l'espace modérateur, avec les signalements, les comptes à vérifier, les annonces en attente et les comptes suspendus.
 
-## Mettre en ligne avec GitHub Pages
-1. Crée un dépôt `piece-fenua` sur ton compte GitHub.
-2. Envoie tous les fichiers du dossier (bouton **Add file → Upload files**).
+Les règles importantes (qui peut publier, le blocage des pièces volées, qui peut voir les documents) sont appliquées **par le serveur**. Elles ne peuvent pas être contournées depuis le téléphone.
+
+---
+
+## 1. Mettre l'app sur GitHub Pages
+1. Sur GitHub, crée un dépôt public **`piece-fenua`**.
+2. **Add file → Upload files**. Glisse **tout le contenu** du dossier (avec les dossiers `assets` et `supabase`), puis **Commit changes**.
 3. **Settings → Pages → Branch : `main` / `(root)` → Save.**
-4. L'app sera disponible à l'adresse `https://<ton-compte>.github.io/piece-fenua/`.
+4. Au bout d'une minute ou deux, l'app est en ligne sur `https://brian-1844.github.io/piece-fenua/`, en mode démo.
+
+## 2. Passer en mode réel avec Supabase (environ 15 minutes)
+1. Crée un compte sur **supabase.com**, puis **New project**. Choisis un nom, un mot de passe de base de données (garde-le) et une région.
+2. Va dans **SQL Editor → New query**. Colle tout le fichier `supabase/schema.sql`, puis clique sur **Run**. Tu dois voir « Success ».
+   *(Facultatif : fais de même avec `supabase/demo-data.sql` pour avoir quelques annonces d'exemple.)*
+3. Va dans **Authentication → URL Configuration** :
+   - **Site URL** : `https://brian-1844.github.io/piece-fenua/`
+   - **Redirect URLs** : ajoute la même adresse.
+4. Va dans **Project Settings → API**. Copie la **Project URL** et la clé **anon public**.
+5. Sur GitHub, ouvre **`config.js`**, clique sur le crayon ✏️ et colle les deux valeurs :
+   ```js
+   SUPABASE_URL: "https://xxxxx.supabase.co",
+   SUPABASE_ANON_KEY: "eyJhbGciOi..."
+   ```
+   ⚠ Ne mets **jamais** la clé `service_role` : elle donnerait tous les droits à n'importe qui.
+6. Ouvre l'app et **crée ton compte**. Valide l'e-mail de confirmation.
+7. Deviens modérateur : retourne dans **SQL Editor** et exécute :
+   ```sql
+   update public.profiles set role = 'moderateur'
+    where id = (select id from auth.users where email = 'TON_EMAIL');
+   ```
+   Recharge l'app : l'onglet **🛡 Vérification** apparaît.
+
+## 3. Avant le vrai lancement
+- Complète `confidentialite.html`, aux endroits entre [crochets].
+- Les e-mails gratuits de Supabase sont limités à quelques-uns par heure. Pour un vrai lancement, branche un service d'envoi d'e-mails (SMTP) dans **Authentication → Emails**.
+- Supprime les annonces de démo : `delete from public.annonces where owner is null;`
+- Note le nom des comptes suspendus pour vol. Si la même personne crée un nouveau compte, tu la reconnaîtras au moment de vérifier sa pièce d'identité.
+- Pour en parler avec la gendarmerie : la liste des pièces signalées volées et le « vendeur identifié » sont tes meilleurs arguments.
 
 ## Structure
 ```
-index.html      page et écrans
-style.css       styles (couleurs lagon, motif tapa)
-app.js          logique (recherche, vente, anti-vol, vérification)
-data.js         catégories, îles, annonces de démo
-manifest.json   installation sur téléphone
-sw.js           fonctionnement hors ligne
-assets/         logo (engrenage + tiare), honu, va'a
+index.html            écrans de l'app
+style.css             styles (fond tiare / honu / niho mano)
+icons.js              icônes des véhicules
+app.js                interface
+backend.js            mode démo + mode Supabase (même interface)
+config.js             ← tes clés Supabase
+data.js               catégories, îles, données de démo
+confidentialite.html  politique de confidentialité (modèle)
+supabase/schema.sql   base de données, règles d'accès, stockage privé
+supabase/demo-data.sql annonces d'exemple
+manifest.json, sw.js  installation sur le téléphone + hors ligne
+assets/               logo (engrenage + tiare), honu, va'a
 ```
-
-## Pour passer en version réelle
-- Un serveur et une base de données partagée (par exemple Supabase ou Firebase), avec des comptes fournisseurs.
-- Un **stockage chiffré et à accès restreint des pièces d'identité**, conservées le moins longtemps possible (loi Informatique et Libertés). Les documents ne doivent jamais être publics.
-- Import Excel / CSV du stock, puis une synchronisation automatique avec les logiciels de caisse.
-- La liste des vols alimentée en lien avec la gendarmerie / la police (sur accord de leur part).
-- Les notifications des demandes groupées aux fournisseurs.
