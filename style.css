@@ -101,3 +101,4 @@ footer a{color:var(--lagon)}
 .form input,.form select{min-width:0;width:100%}
 .two>label{min-width:0}
 html,body{overflow-x:hidden}
+[hidden]{display:none!important}
