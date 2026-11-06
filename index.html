@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pièce Fenua — Pièces détachées à Tahiti et dans les îles</title>
+  <meta name="description" content="Moteur de recherche de pièces détachées disponibles chez les fournisseurs et revendeurs de Polynésie française.">
+  <meta name="theme-color" content="#0b4f6c">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <img src="assets/logo.svg" alt="" class="logo">
+    <div>
+      <h1>Pièce Fenua</h1>
+      <p class="tag">Ia ora na ! Trouve ta pièce au fenua</p>
+    </div>
+  </header>
+  <div class="tapa" aria-hidden="true"></div>
+
+  <nav class="tabs" role="tablist">
+    <button data-view="chercher" class="on">🔍 Chercher</button>
+    <button data-view="demande">📣 Demande</button>
+    <button data-view="vendre">📦 Vendre</button>
+    <button data-view="vol">🚨 Signaler un vol</button>
+    <button data-view="admin">🛡 Vérification</button>
+  </nav>
+
+  <main>
+    <!-- ===== CHERCHER ===== -->
+    <section id="v-chercher" class="view on">
+      <input id="q" type="search" placeholder="Nom de pièce, référence, marque, modèle…" autocomplete="off">
+      <div id="cats" class="cats"></div>
+      <div class="filters">
+        <select id="f-etat">
+          <option value="">Neuf + occasion</option>
+          <option value="neuf">Neuf</option>
+          <option value="occasion">Occasion</option>
+        </select>
+        <select id="f-ile"></select>
+        <label class="chk"><input type="checkbox" id="f-stock" checked> En stock</label>
+        <select id="f-tri">
+          <option value="prix">Prix ↑</option>
+          <option value="maj">Mise à jour récente</option>
+        </select>
+      </div>
+      <p id="count" class="muted"></p>
+      <div id="results"></div>
+    </section>
+
+    <!-- ===== DEMANDE GROUPEE ===== -->
+    <section id="v-demande" class="view">
+      <h2>Pièce introuvable ?</h2>
+      <p class="muted">Ta demande est envoyée à tous les fournisseurs de la catégorie. Ils te répondent avec un prix et un délai.</p>
+      <form id="form-demande" class="form">
+        <label>Pièce recherchée *<input name="piece" required placeholder="ex. Pompe à eau Yamaha F40"></label>
+        <label>Catégorie *<select name="cat" required class="sel-cat"></select></label>
+        <label>Véhicule (marque, modèle, année)<input name="vehicule" placeholder="ex. Toyota Hilux 2019"></label>
+        <label>Île *<select name="ile" required class="sel-ile"></select></label>
+        <label>Ton téléphone *<input name="tel" required inputmode="tel" placeholder="87 xx xx xx"></label>
+        <button class="btn">Envoyer la demande</button>
+      </form>
+      <h3>Mes demandes</h3>
+      <div id="demandes"></div>
+    </section>
+
+    <!-- ===== VENDRE ===== -->
+    <section id="v-vendre" class="view">
+      <h2>Mettre une pièce en ligne</h2>
+      <div class="notice">
+        <img src="assets/honu.svg" alt="" class="honu">
+        <div><b>Revente d'occasion : vendeur identifié.</b><br>
+        Pour lutter contre le vol de pièces, toute revente demande une <b>pièce d'identité</b>.
+        Ajoute la <b>carte grise</b> ou le <b>ticket d'achat</b> pour obtenir le badge <b>✔ Provenance vérifiée</b> — obligatoire à partir de <b>50 000 F</b>.</div>
+      </div>
+      <form id="form-vendre" class="form">
+        <fieldset>
+          <legend>Vendeur</legend>
+          <label>Type de vendeur *
+            <select name="type" required>
+              <option value="pro">Magasin / fournisseur professionnel</option>
+              <option value="casse">Casse / démolisseur</option>
+              <option value="particulier">Particulier</option>
+            </select>
+          </label>
+          <label>Nom du vendeur ou du commerce *<input name="vendeur" required></label>
+          <label class="pro-only">N° Tahiti (entreprise)<input name="ntahiti" placeholder="ex. A12345"></label>
+          <label>Commune *<input name="commune" required placeholder="ex. Pirae"></label>
+          <label>Île *<select name="ile" required class="sel-ile"></select></label>
+          <label>Téléphone / WhatsApp *<input name="tel" required inputmode="tel"></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Pièce</legend>
+          <label>Nom de la pièce *<input name="nom" required placeholder="ex. Alternateur"></label>
+          <label>Catégorie *<select name="cat" required class="sel-cat"></select></label>
+          <label>Compatible avec (marque, modèle, années)<input name="compat" placeholder="ex. Kia Picanto 2015-2019"></label>
+          <label>Référence constructeur / OEM<input name="ref"></label>
+          <label>État *
+            <select name="etat" required>
+              <option value="neuf">Neuf</option>
+              <option value="occasion">Occasion / revente</option>
+            </select>
+          </label>
+          <div class="two">
+            <label>Prix (F CFP) *<input name="prix" type="number" min="0" step="50" required></label>
+            <label>Quantité *<input name="qte" type="number" min="0" value="1" required></label>
+          </div>
+        </fieldset>
+
+        <fieldset id="provenance" class="provenance">
+          <legend>🛡 Revente d'occasion</legend>
+          <label>Pièce d'identité du vendeur * <small>(CNI, passeport ou permis)</small><input name="doc_id" type="file" accept="image/*,application/pdf"></label>
+          <label>N° de série de la pièce ou VIN du véhicule d'origine <span class="seuil-req">*</span>
+            <small>Recommandé : permet de bloquer une pièce signalée volée.</small>
+            <input name="serie" placeholder="ex. JTFST22P400012345"></label>
+          <p class="muted" id="seuil-info"></p>
+          <label>Justificatif d'origine <span class="seuil-req">*</span> <small>(facultatif sous 50 000 F — donne le badge « Provenance vérifiée »)</small>
+            <select name="justif_type">
+              <option value="carte_grise">Carte grise du véhicule d'origine</option>
+              <option value="ticket">Ticket / facture d'achat de la pièce</option>
+              <option value="pv_casse">Certificat de destruction / achat d'épave (casse)</option>
+            </select>
+          </label>
+          <label>Photo du justificatif <span class="seuil-req">*</span><input name="doc_justif" type="file" accept="image/*,application/pdf"></label>
+          <label class="chk"><input type="checkbox" name="honneur"> Je certifie sur l'honneur être le propriétaire légitime de cette pièce et que les documents sont authentiques. Une fausse déclaration peut être signalée aux autorités.</label>
+        </fieldset>
+
+        <button class="btn">Publier</button>
+        <p id="vendre-msg" class="msg" role="status"></p>
+      </form>
+
+      <h3>Mes annonces</h3>
+      <div id="mes-annonces"></div>
+    </section>
+
+    <!-- ===== SIGNALER UN VOL ===== -->
+    <section id="v-vol" class="view">
+      <h2>Signaler une pièce ou un véhicule volé</h2>
+      <p class="muted">Le numéro est ajouté à la liste de surveillance : toute annonce avec ce n° de série / VIN est bloquée et transmise à la vérification.</p>
+      <form id="form-vol" class="form">
+        <label>N° de série de la pièce ou VIN / immatriculation *<input name="serie" required></label>
+        <label>Description *<input name="desc" required placeholder="ex. Moteur Yamaha 40 CV volé sur un poti marara"></label>
+        <label>Date du vol<input name="date" type="date"></label>
+        <label>N° de plainte (gendarmerie / police)<input name="plainte"></label>
+        <label>Téléphone *<input name="tel" required inputmode="tel"></label>
+        <button class="btn red">Signaler</button>
+        <p id="vol-msg" class="msg" role="status"></p>
+      </form>
+      <h3>Liste de surveillance</h3>
+      <div id="vols"></div>
+    </section>
+
+    <!-- ===== ADMIN / VERIFICATION ===== -->
+    <section id="v-admin" class="view">
+      <h2>Vérification des annonces d'occasion</h2>
+      <p class="muted">Espace modérateur (démo) : contrôler l'identité et le justificatif avant publication.</p>
+      <div id="admin"></div>
+    </section>
+  </main>
+
+  <footer>
+    <img src="assets/vaa.svg" alt="" class="vaa">
+    <p>Pièce Fenua · démo — les vendeurs et prix affichés sont fictifs.<br>Données stockées uniquement sur cet appareil.</p>
+  </footer>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

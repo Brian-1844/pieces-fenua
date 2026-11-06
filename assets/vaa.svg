@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 60" role="img" aria-label="Va'a">
+  <g fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round">
+    <!-- coque -->
+    <path d="M6 34 Q60 50 114 30"/>
+    <!-- ama (balancier) -->
+    <path d="M30 14 L84 10"/>
+    <path d="M40 13 L42 36 M74 11 L76 38"/>
+    <!-- vagues -->
+    <path d="M8 52 q8 -6 16 0 t16 0 t16 0 t16 0 t16 0 t16 0" stroke-width="3"/>
+  </g>
+</svg>

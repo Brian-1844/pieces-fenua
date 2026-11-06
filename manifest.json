@@ -1,0 +1,13 @@
+{
+  "name": "Pièce Fenua",
+  "short_name": "Pièce Fenua",
+  "description": "Pièces détachées disponibles à Tahiti et dans les îles",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f4f7f9",
+  "theme_color": "#0b4f6c",
+  "lang": "fr",
+  "icons": [
+    { "src": "assets/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
