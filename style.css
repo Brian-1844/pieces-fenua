@@ -86,3 +86,18 @@ footer a{color:var(--lagon)}
 .photo-prev{max-width:160px;max-height:120px;border-radius:10px;display:block;margin-top:6px}
 .sig{display:block;margin-top:8px;color:#889;font-size:.8rem}
 .sig-form{margin-top:8px}
+.pill.lang{margin-left:6px;font-size:.75rem;padding:7px 10px}
+.b-part{background:#fff1d6;color:#9a5b00}
+.card.une{border:2px solid var(--orange);position:relative}
+.une-tag{position:absolute;top:-10px;right:12px;background:var(--orange);color:#fff;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:8px}
+.offres{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin:14px 0}
+.offre{background:#fff;border-radius:14px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.1);display:flex;flex-direction:column}
+.offre.offre-top{border:3px solid var(--orange)}
+.offre h3{margin:0 0 4px}
+.offre .px{font-size:1.6rem;font-weight:800;color:var(--bleu);margin:6px 0}
+.offre .px small{font-size:.85rem;color:#667;font-weight:400}
+.offre ul{padding-left:20px;margin:8px 0 0;line-height:1.6;font-size:.92rem;flex:1}
+.ruban{align-self:flex-start;background:var(--orange);color:#fff;font-size:.72rem;font-weight:700;border-radius:8px;padding:2px 8px;margin-bottom:6px}
+.form input,.form select{min-width:0;width:100%}
+.two>label{min-width:0}
+html,body{overflow-x:hidden}

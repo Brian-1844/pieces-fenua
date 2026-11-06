@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Offres pour les professionnels — Pièce Fenua</title>
+  <meta name="description" content="Publiez votre stock de pièces détachées sur Pièce Fenua : offres gratuite, Partenaire et Premium pour les magasins et casses de Polynésie.">
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script src="lang/ty.js"></script>
+  <script src="i18n.js"></script>
+</head>
+<body>
+  <header class="top">
+    <img src="assets/logo.svg" alt="" class="logo">
+    <div class="grow"><h1>Pièce Fenua</h1><p class="tag">Offres pour les professionnels</p></div>
+  </header>
+  <div class="tapa" aria-hidden="true"></div>
+
+  <main>
+    <h2>Mettez votre stock sous les yeux de tout le fenua</h2>
+    <p>Chaque jour, des clients cherchent une pièce et appellent magasin après magasin. Avec Pièce Fenua, ils voient directement <b>qui a la pièce, à quel prix et où</b>, et vous contactent sur WhatsApp ou par téléphone.</p>
+
+    <div class="notice">
+      <img src="assets/honu.svg" alt="" class="honu">
+      <div><b>Offre de lancement :</b> les 20 premiers fournisseurs ont <b>3 mois de l'offre Partenaire offerts</b>, puis gardent un tarif réduit.</div>
+    </div>
+
+    <div class="offres">
+      <div class="offre">
+        <h3>Gratuite</h3>
+        <div class="px">0 F <small>/ mois</small></div>
+        <ul>
+          <li>Jusqu'à <b>30 pièces</b> en ligne</li>
+          <li>Contact WhatsApp et téléphone</li>
+          <li>Neuf et occasion</li>
+          <li>Pour tester sans engagement</li>
+        </ul>
+      </div>
+      <div class="offre offre-top">
+        <span class="ruban">Le plus choisi</span>
+        <h3>Partenaire</h3>
+        <div class="px">4 900 F <small>/ mois</small></div>
+        <ul>
+          <li><b>Pièces illimitées</b></li>
+          <li>Badge <b>⭐ Fournisseur partenaire</b> sur toutes vos annonces</li>
+          <li>Accès aux <b>demandes groupées</b> des clients</li>
+          <li>Aide à l'import de votre stock (fichier Excel)</li>
+        </ul>
+      </div>
+      <div class="offre">
+        <h3>Premium</h3>
+        <div class="px">9 900 F <small>/ mois</small></div>
+        <ul>
+          <li>Toute l'offre Partenaire</li>
+          <li>Vos annonces <b>« À la une »</b> en tête des résultats</li>
+          <li>Mise en avant sur la page Facebook Pièce Fenua</li>
+          <li>Un interlocuteur dédié</li>
+        </ul>
+      </div>
+    </div>
+    <p class="muted">Tarifs en F CFP, sans engagement : vous pouvez arrêter à tout moment. Paiement mensuel par virement ou en main propre, avec facture.</p>
+
+    <h2>Vous êtes intéressé ?</h2>
+    <form id="f-contact" class="form card">
+      <label>Nom du commerce *<input name="nom" required></label>
+      <label>N° Tahiti<input name="ntahiti" placeholder="ex. A12345"></label>
+      <label>Téléphone *<input name="tel" required inputmode="tel"></label>
+      <div class="two">
+        <label>Commune<input name="commune" placeholder="ex. Faa'a"></label>
+        <label>Nombre de pièces (environ)<input name="nb" type="number" min="0"></label>
+      </div>
+      <label>Offre souhaitée
+        <select name="offre"><option>Partenaire</option><option>Premium</option><option>Gratuite</option><option>Je ne sais pas encore</option></select>
+      </label>
+      <div class="actions" id="contact-btns"></div>
+      <p class="msg" id="contact-msg"></p>
+    </form>
+
+    <p style="margin-top:18px"><a class="btn b" href="index.html">← Retour à l'application</a></p>
+  </main>
+
+  <footer><img src="assets/vaa.svg" alt="" class="vaa"><p>Pièce Fenua · <a href="confidentialite.html">Confidentialité</a></p></footer>
+
+  <script src="config.js"></script>
+  <script>
+    (() => {
+      const cfg = window.PF_CONFIG || {};
+      const f = document.getElementById("f-contact");
+      const box = document.getElementById("contact-btns");
+      const wa = String(cfg.CONTACT_WHATSAPP || "").replace(/\D/g, "");
+      const mail = cfg.CONTACT_EMAIL || "";
+      if (wa) box.insertAdjacentHTML("beforeend", `<button class="btn g" data-via="wa">💬 Envoyer par WhatsApp</button>`);
+      if (mail) box.insertAdjacentHTML("beforeend", `<button class="btn b" data-via="mail">✉️ Envoyer par e-mail</button>`);
+      if (!wa && !mail) box.innerHTML = `<p class="muted">Contact bientôt disponible.</p>`;
+
+      const texte = () => {
+        const d = Object.fromEntries(new FormData(f));
+        return `Ia ora na ! Je suis intéressé par Pièce Fenua.\n` +
+          `Commerce : ${d.nom}\nN° Tahiti : ${d.ntahiti || "-"}\nTéléphone : ${d.tel}\n` +
+          `Commune : ${d.commune || "-"}\nNombre de pièces : ${d.nb || "-"}\nOffre souhaitée : ${d.offre}`;
+      };
+      box.addEventListener("click", e => {
+        const b = e.target.closest("[data-via]"); if (!b) return;
+        e.preventDefault();
+        if (!f.reportValidity()) return;
+        if (b.dataset.via === "wa") {
+          const n = wa.length === 8 ? "689" + wa : wa;
+          window.open(`https://wa.me/${n}?text=${encodeURIComponent(texte())}`, "_blank", "noopener");
+        } else {
+          location.href = `mailto:${mail}?subject=${encodeURIComponent("Offre pro Pièce Fenua")}&body=${encodeURIComponent(texte())}`;
+        }
+        const m = document.getElementById("contact-msg");
+        m.className = "msg okm"; m.textContent = "✔ Merci ! Nous vous recontactons rapidement.";
+      });
+    })();
+  </script>
+</body>
+</html>

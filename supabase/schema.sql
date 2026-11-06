@@ -21,6 +21,7 @@ create table if not exists public.profiles (
   id_motif     text,
   verifie_le   timestamptz,
   verifie_par  uuid,
+  offre        text not null default 'gratuit' check (offre in ('gratuit','partenaire','premium')),
   suspendu     boolean not null default false,
   suspendu_motif text,
   suspendu_le  timestamptz,
@@ -61,6 +62,7 @@ begin
   new.verifie_le  := old.verifie_le;
   new.verifie_par := old.verifie_par;
   new.id_motif    := old.id_motif;
+  new.offre       := old.offre;
   new.suspendu    := old.suspendu;
   new.suspendu_motif := old.suspendu_motif;
   new.suspendu_le := old.suspendu_le;
@@ -125,6 +127,7 @@ create table if not exists public.annonces (
   justif_type  text,
   justif_path  text,
   photo_url    text,
+  offre        text not null default 'gratuit',
   statut       text not null default 'attente'
                check (statut in ('publie','attente','refuse','bloque','masque')),
   motif        text,
@@ -132,6 +135,8 @@ create table if not exists public.annonces (
   created_at   timestamptz not null default now()
 );
 alter table public.annonces add column if not exists photo_url text;
+alter table public.annonces add column if not exists offre text not null default 'gratuit';
+alter table public.profiles add column if not exists offre text not null default 'gratuit';
 create index if not exists annonces_serie_idx on public.annonces(serie_norm);
 create index if not exists vols_serie_idx on public.vols(serie_norm);
 
@@ -150,7 +155,13 @@ begin
 
   new.owner := auth.uid(); new.maj := now(); new.motif := null;
   new.vendeur := p.nom; new.tel := p.tel; new.commune := p.commune; new.ile := p.ile;
-  new.type := p.type; new.ntahiti := p.ntahiti;
+  new.type := p.type; new.ntahiti := p.ntahiti; new.offre := p.offre;
+
+  -- offre gratuite : 30 pièces en ligne maximum (modifiable ici)
+  if p.offre = 'gratuit' and (select count(*) from public.annonces a
+       where a.owner = auth.uid() and a.statut in ('publie','attente')) >= 30 then
+    raise exception 'Limite de 30 pièces de l''offre gratuite atteinte : découvre les offres pros.';
+  end if;
 
   if new.etat = 'neuf' then
     if p.type = 'particulier' then raise exception 'Un particulier ne peut vendre que de l''occasion.'; end if;
@@ -309,6 +320,18 @@ revoke all on function public.suspendre_compte(uuid, text) from public, anon;
 revoke all on function public.reactiver_compte(uuid) from public, anon;
 grant execute on function public.suspendre_compte(uuid, text) to authenticated;
 grant execute on function public.reactiver_compte(uuid) to authenticated;
+
+-- ---------- OFFRES PROS (modérateurs uniquement) ----------
+create or replace function public.definir_offre(cible uuid, o text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_moderateur() then raise exception 'Réservé aux modérateurs.'; end if;
+  if o not in ('gratuit','partenaire','premium') then raise exception 'Offre inconnue.'; end if;
+  update public.profiles set offre = o where id = cible;
+  update public.annonces set offre = o where owner = cible;
+end $$;
+revoke all on function public.definir_offre(uuid, text) from public, anon;
+grant execute on function public.definir_offre(uuid, text) to authenticated;
 
 -- ---------- SUPPRESSION DE SON COMPTE ----------
 create or replace function public.supprimer_mon_compte()

@@ -26,6 +26,8 @@ Voiture · Camion · Drague / pelle · Engins Case / tracteur · Moto · Scooter
   - La personne ne peut plus vendre, signaler ni faire de demande, et voit le motif de la suspension dans son compte.
   - En cas de réactivation, ses annonces repassent par la vérification avant de revenir en ligne.
   - Le modérateur peut aussi seulement **retirer une photo** ou **retirer une annonce**.
+- **⭐ Offres pros** (`offres.html`) : trois formules, Gratuite (30 pièces), Partenaire et Premium, avec un formulaire de contact par WhatsApp ou par e-mail. Ton numéro et ton e-mail se règlent dans `config.js`. Une fois le paiement reçu, le modérateur choisit l'offre du fournisseur dans **Vérification**. Le badge « Fournisseur partenaire » s'affiche alors, et les annonces Premium passent « À la une ». Les tarifs sont à ajuster directement dans `offres.html`. La limite de 30 pièces se règle dans `backend.js` et dans `schema.sql`.
+- **Reo Tahiti (bêta)** : le bouton en haut à droite passe l'app en tahitien. Les traductions sont dans `lang/ty.js` : modifie le texte à droite, et une ligne vide garde le français. **À faire relire par une personne qui parle couramment le tahitien.**
 - **🛡 Vérification** : l'espace modérateur, avec les signalements, les comptes à vérifier, les annonces en attente et les comptes suspendus.
 
 Les règles importantes (qui peut publier, le blocage des pièces volées, qui peut voir les documents) sont appliquées **par le serveur**. Elles ne peuvent pas être contournées depuis le téléphone.
@@ -36,14 +38,14 @@ Les règles importantes (qui peut publier, le blocage des pièces volées, qui p
 1. Sur GitHub, crée un dépôt public **`piece-fenua`**.
 2. **Add file → Upload files**. Glisse **tout le contenu** du dossier (avec les dossiers `assets` et `supabase`), puis **Commit changes**.
 3. **Settings → Pages → Branch : `main` / `(root)` → Save.**
-4. Au bout d'une minute ou deux, l'app est en ligne sur `https://brian-1844.github.io/piece-fenua/`, en mode démo.
+4. Au bout d'une minute ou deux, l'app est en ligne sur `https://piece-fenua.github.io`, en mode démo.
 
 ## 2. Passer en mode réel avec Supabase (environ 15 minutes)
 1. Crée un compte sur **supabase.com**, puis **New project**. Choisis un nom, un mot de passe de base de données (garde-le) et une région.
 2. Va dans **SQL Editor → New query**. Colle tout le fichier `supabase/schema.sql`, puis clique sur **Run**. Tu dois voir « Success ».
    *(Facultatif : fais de même avec `supabase/demo-data.sql` pour avoir quelques annonces d'exemple.)*
 3. Va dans **Authentication → URL Configuration** :
-   - **Site URL** : `https://brian-1844.github.io/piece-fenua/`
+   - **Site URL** : `https://piece-fenua.github.io`
    - **Redirect URLs** : ajoute la même adresse.
 4. Va dans **Project Settings → API**. Copie la **Project URL** et la clé **anon public**.
 5. Sur GitHub, ouvre **`config.js`**, clique sur le crayon ✏️ et colle les deux valeurs :
@@ -75,7 +77,9 @@ icons.js              icônes des véhicules
 app.js                interface
 backend.js            mode démo + mode Supabase (même interface)
 config.js             ← tes clés Supabase
+i18n.js, lang/ty.js   bascule FR / Reo Tahiti (traductions à relire)
 data.js               catégories, îles, données de démo
+offres.html           page des offres pour les professionnels
 confidentialite.html  politique de confidentialité (modèle)
 supabase/schema.sql   base de données, règles d'accès, stockage privé
 supabase/demo-data.sql annonces d'exemple

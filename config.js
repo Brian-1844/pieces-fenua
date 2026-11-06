@@ -7,5 +7,9 @@
    ========================================================= */
 window.PF_CONFIG = {
   SUPABASE_URL: "",       // ex. "https://abcdefgh.supabase.co"
-  SUPABASE_ANON_KEY: ""   // ex. "eyJhbGciOi..."
+  SUPABASE_ANON_KEY: "",  // ex. "eyJhbGciOi..."
+
+  // Contact affiché sur la page « Offres pros » (laisser vide pour masquer)
+  CONTACT_WHATSAPP: "",   // ex. "87123456"
+  CONTACT_EMAIL: "piecefenua.contact@gmail.com"
 };

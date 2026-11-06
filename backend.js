@@ -5,6 +5,7 @@
    Les deux modes ont exactement la même interface, utilisée par app.js.
    ===================================================================== */
 window.PF_SEUIL = 50000;
+window.PF_LIMITE_GRATUITE = 30;   // pièces en ligne avec l'offre gratuite (même valeur que dans schema.sql)
 window.PF_normSerie = s => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 
 window.createBackend = async function () {
@@ -29,7 +30,7 @@ function loadScript(src) {
 }
 const safeName = n => String(n || "fichier").normalize("NFD").replace(/[^\w.\-]/g, "_").slice(-60);
 const PROFIL_VIDE = { nom: "", tel: "", commune: "", ile: "Tahiti", type: "acheteur", ntahiti: "",
-  role: "membre", suspendu: false, id_statut: "non_envoye", id_type: "", id_path: null, id_motif: "", verifie_le: null };
+  role: "membre", offre: "gratuit", suspendu: false, id_statut: "non_envoye", id_type: "", id_path: null, id_motif: "", verifie_le: null };
 
 /* =========================== MODE SUPABASE =========================== */
 function supabaseBackend(cfg) {
@@ -157,6 +158,11 @@ function supabaseBackend(cfg) {
     },
     async suspendre(uid, motif) { const { error } = await sb.rpc("suspendre_compte", { cible: uid, motif }); err(error); },
     async reactiver(uid) { const { error } = await sb.rpc("reactiver_compte", { cible: uid }); err(error); },
+    async listPros() {
+      const { data, error } = await sb.from("profiles").select("*").in("type", ["pro", "casse"]).order("nom");
+      err(error); return data || [];
+    },
+    async definirOffre(uid, offre) { const { error } = await sb.rpc("definir_offre", { cible: uid, o: offre }); err(error); },
     async listSuspendus() {
       const { data, error } = await sb.from("profiles").select("*").eq("suspendu", true).order("suspendu_le", { ascending: false });
       err(error); return data || [];
@@ -290,8 +296,11 @@ function localBackend() {
       if (p.suspendu) fail("Compte suspendu : " + (p.suspendu_motif || "contacte la modération"));
       if (!p.nom || !p.tel) fail("Complète ton profil avant de vendre.");
       if (p.type === "acheteur") fail("Choisis un type de compte vendeur dans ton profil.");
+      const offre = p.offre || "gratuit";
+      if (offre === "gratuit" && annonces.filter(x => x.owner === user().id && ["publie", "attente"].includes(x.statut)).length >= PF_LIMITE_GRATUITE)
+        fail(`Limite de ${PF_LIMITE_GRATUITE} pièces de l'offre gratuite atteinte : découvre les offres pros.`);
       const n = { ...a, id: "a" + Date.now(), owner: user().id, vendeur: p.nom, tel: p.tel, commune: p.commune,
-        ile: p.ile, type: p.type, ntahiti: p.ntahiti, maj: Date.now(), motif: "" };
+        ile: p.ile, type: p.type, ntahiti: p.ntahiti, offre, maj: Date.now(), motif: "" };
       if (a.etat === "neuf") {
         if (p.type === "particulier") fail("Un particulier ne peut vendre que de l'occasion.");
         n.statut = "publie";
@@ -348,6 +357,12 @@ function localBackend() {
       saveAll();
     },
     async listSuspendus() { return Object.values(profils).filter(p => p.suspendu); },
+    async listPros() { return Object.values(profils).filter(p => ["pro", "casse"].includes(p.type)); },
+    async definirOffre(uid, offre) {
+      profils[uid].offre = offre;
+      annonces.forEach(a => { if (a.owner === uid) a.offre = offre; });
+      saveAll();
+    },
     async addVol(v) {
       if (profil()?.suspendu) fail("Compte suspendu.");
       vols.unshift({ ...v, owner: user()?.id });

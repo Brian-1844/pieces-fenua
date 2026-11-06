@@ -23,6 +23,7 @@
   const dateFr = d => d ? new Date(d).toLocaleDateString("fr-FR") : "";
   const JUSTIF = { carte_grise: "Carte grise", ticket: "Ticket / facture d'achat", pv_casse: "Certificat de destruction / achat d'épave" };
   const TYPES = { acheteur: "Acheteur uniquement", particulier: "Particulier (revente d'occasion)", pro: "Magasin / fournisseur professionnel", casse: "Casse / démolisseur" };
+  const OFFRES = { gratuit: "Gratuite", partenaire: "Partenaire", premium: "Premium" };
   const MOTIFS = { photo: "Photo inappropriée", vol: "Pièce probablement volée", arnaque: "Arnaque / fausse annonce", autre: "Autre abus" };
   const ID_TYPES = { cni: "Carte d'identité", passeport: "Passeport", permis: "Permis de conduire" };
   const setMsg = (el, txt, ok) => { el.className = "msg " + (ok ? "okm" : "err"); el.textContent = txt; };
@@ -99,6 +100,7 @@
     if (a.etat === "neuf") b += `<span class="badge b-neuf">Neuf</span>`;
     else if (a.justif_type) b += `<span class="badge b-verif">✔ Occasion — provenance vérifiée</span>`;
     else b += `<span class="badge b-attente">Occasion — vendeur identifié</span>`;
+    if (a.offre === "partenaire" || a.offre === "premium") b += `<span class="badge b-part">⭐ Fournisseur partenaire</span>`;
     if (a.type === "casse") b += `<span class="badge b-neuf">Casse</span>`;
     if (a.type === "particulier") b += `<span class="badge b-neuf">Particulier</span>`;
     return b;
@@ -116,11 +118,12 @@
       a.statut === "publie" && !estVole(a.serie) &&
       (!catSel || a.cat === catSel) && (!etat || a.etat === etat) && (!ile || a.ile === ile) && (!stock || a.qte > 0) &&
       q.every(w => norm([a.nom, a.compat, a.ref, a.vendeur, a.commune, catNom(a.cat)].join(" ")).includes(w)))
-      .sort(tri === "prix" ? (x, y) => x.prix - y.prix : (x, y) => y.maj - x.maj);
+      .sort(tri === "prix" ? (x, y) => x.prix - y.prix : (x, y) => y.maj - x.maj)
+      .sort((x, y) => (y.offre === "premium") - (x.offre === "premium"));   // premium = à la une
 
     $("#count").textContent = list.length + (list.length > 1 ? " pièces trouvées" : " pièce trouvée");
     $("#results").innerHTML = list.length ? list.map(a => `
-      <article class="card has-img">${thumb(a)}<div class="body">
+      <article class="card has-img${a.offre === "premium" ? " une" : ""}">${a.offre === "premium" ? `<span class="une-tag">À la une</span>` : ""}${thumb(a)}<div class="body">
         <div class="h"><div class="t">${esc(a.nom)}</div><div class="p">${prix(a.prix)}</div></div>
         <div class="m">${esc(a.compat)}${a.ref ? " · Réf. " + esc(a.ref) : ""}</div>
         <div class="m"><b>${esc(a.vendeur)}</b> · ${esc(a.commune)}, ${esc(a.ile)} · ${stockTxt(a)} · mis à jour ${depuis(a.maj)}</div>
@@ -287,6 +290,7 @@
         </fieldset>
       </form>
 
+      ${["pro", "casse"].includes(p.type) ? `<div class="status st-none">⭐ <div>Offre actuelle : <b>${OFFRES[p.offre || "gratuit"]}</b>${(p.offre || "gratuit") === "gratuit" ? ` (${PF_LIMITE_GRATUITE} pièces maximum)` : ""}<br><a href="offres.html">Voir les offres pour les professionnels →</a></div></div>` : ""}
       <fieldset class="form" style="margin-top:12px"><legend>2. Pièce d'identité</legend>
         ${statutIdHtml(p)}
         ${peutEnvoyer ? `
@@ -353,7 +357,10 @@
     fv.hidden = !!txt;
     $$("[data-go]", gate).forEach(b => b.onclick = () => go(b.dataset.go));
     if (txt) return;
-    $("#vendeur-info").innerHTML = `<div class="t">${esc(p.nom)}</div><div class="m">${esc(TYPES[p.type])} · ${esc(p.commune)}, ${esc(p.ile)} · 📞 ${esc(p.tel)}</div>`;
+    const nbMes = annonces.filter(a => a.owner === user().id && ["publie", "attente"].includes(a.statut)).length;
+    const off = p.offre || "gratuit";
+    $("#vendeur-info").innerHTML = `<div class="t">${esc(p.nom)}</div><div class="m">${esc(TYPES[p.type])} · ${esc(p.commune)}, ${esc(p.ile)} · 📞 ${esc(p.tel)}</div>
+      <div class="m">Offre ${OFFRES[off]}${off === "gratuit" ? ` : ${nbMes} / ${PF_LIMITE_GRATUITE} pièces en ligne` : " : pièces illimitées"} · <a href="offres.html">Offres pros</a></div>`;
     const optNeuf = fv.etat.querySelector('option[value="neuf"]');
     optNeuf.disabled = p.type === "particulier";
     if (p.type === "particulier") fv.etat.value = "occasion";
@@ -525,6 +532,11 @@
           <button class="btn g" data-classer="${esc(sg.id)}">✔ Classer (rien à signaler)</button>
         </div></div>`;
     });
+    let pros = [];
+    try { pros = await B.listPros(); } catch (e) { console.error(e); }
+    const htmlPros = pros.map(p => `<div class="card"><div class="h"><div class="t">${esc(p.nom || "(sans nom)")}</div>
+        <select data-offre="${esc(p.id)}">${Object.entries(OFFRES).map(([k, v]) => `<option value="${k}" ${(p.offre || "gratuit") === k ? "selected" : ""}>${v}</option>`).join("")}</select></div>
+        <div class="m">${esc(TYPES[p.type])} · ${esc(p.commune)}, ${esc(p.ile)} · 📞 ${esc(p.tel)}${p.ntahiti ? " · N° Tahiti " + esc(p.ntahiti) : ""}</div></div>`);
     const htmlSusp = susp.map(p => `<div class="card">
         <div class="t">⛔ ${esc(p.nom || "(sans nom)")}</div>
         <div class="m">${esc(p.tel)} · suspendu le ${dateFr(p.suspendu_le)} — ${esc(p.suspendu_motif)}</div>
@@ -532,6 +544,12 @@
     if (tick !== adminTick) return;
     $("#admin-signal").innerHTML = htmlSig.join("") || `<p class="empty">Aucun signalement 🌺</p>`;
     $("#admin-susp").innerHTML = htmlSusp.join("") || `<p class="empty">Aucun compte suspendu</p>`;
+    $("#admin-pros").innerHTML = htmlPros.join("") || `<p class="empty">Aucun compte professionnel</p>`;
+    $$("[data-offre]").forEach(sel => sel.onchange = async () => {
+      sel.disabled = true;
+      try { await B.definirOffre(sel.dataset.offre, sel.value); } catch (er) { alert(er.message); }
+      await reload();
+    });
     const sigDe = id => sigs.filter(x => x.annonce_id === id);
     $$("[data-classer]").forEach(b => b.onclick = () => busy(b, async () => { await B.classerSignalement(b.dataset.classer); renderAll(); }));
     $$("[data-rphoto]").forEach(b => b.onclick = () => busy(b, async () => {

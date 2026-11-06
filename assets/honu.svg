@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Honu">
-  <g fill="currentColor">
+  <g fill="#127a9c">
     <!-- tête -->
     <ellipse cx="50" cy="14" rx="9" ry="11"/>
     <!-- nageoires -->
