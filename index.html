@@ -7,10 +7,18 @@
   <meta name="description" content="Moteur de recherche de pièces détachées disponibles chez les fournisseurs et revendeurs de Polynésie française.">
   <meta name="theme-color" content="#0b4f6c">
   <link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Pièce Fenua">
+  <meta property="og:title" content="Pièce Fenua — Pièces détachées à Tahiti et dans les îles">
+  <meta property="og:description" content="Trouve ta pièce au fenua : voiture, camion, moto, scooter, bateau, jet-ski. Stock des fournisseurs et revendeurs identifiés.">
+  <meta property="og:image" content="https://piece-fenua.github.io/assets/og-image.jpg">
+  <meta property="og:url" content="https://piece-fenua.github.io/">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=7">
-  <script src="lang/ty.js?v=7"></script>
-  <script src="i18n.js?v=7"></script>
+  <link rel="stylesheet" href="style.css?v=8">
+  <script src="lang/ty.js?v=8"></script>
+  <script src="i18n.js?v=8"></script>
 </head>
 <body>
   <header class="top">
@@ -24,15 +32,23 @@
   <div class="tapa" aria-hidden="true"></div>
   <div id="demo-banner" class="banner" hidden>Mode démo : comptes et données enregistrés seulement sur ce téléphone.</div>
 
-  <nav class="tabs" role="tablist">
-    <button data-view="chercher" class="on">🔍 Chercher</button>
-    <button data-view="demande">📣 Demande</button>
-    <button data-view="vendre">📦 Vendre</button>
-    <button data-view="commandes" id="tab-cmd">🧾 Commandes</button>
-    <button data-view="vol">🚨 Signaler un vol</button>
-    <button data-view="compte">👤 Compte</button>
-    <button data-view="admin" id="tab-admin" hidden>🛡 Vérification</button>
+  <nav class="tabs" role="tablist" aria-label="Navigation">
+    <button data-view="chercher" class="on"><span class="ti">🔍</span><span class="tl">Chercher</span></button>
+    <button data-view="demande" class="sec"><span class="ti">📣</span><span class="tl">Demande</span></button>
+    <button data-view="vendre"><span class="ti">📦</span><span class="tl">Vendre</span></button>
+    <button data-view="commandes" id="tab-cmd"><span class="ti">🧾</span><span class="tl">Commandes</span><span class="nb" hidden></span></button>
+    <button data-view="vol" class="sec"><span class="ti">🚨</span><span class="tl">Signaler un vol</span></button>
+    <button data-view="compte"><span class="ti">👤</span><span class="tl">Compte</span></button>
+    <button data-view="admin" id="tab-admin" class="sec" hidden><span class="ti">🛡</span><span class="tl">Vérification</span></button>
+    <button id="btn-plus" class="plus" aria-expanded="false" aria-controls="plus-sheet"><span class="ti">☰</span><span class="tl">Plus</span></button>
   </nav>
+  <div id="plus-sheet" class="sheet" hidden>
+    <button data-go-view="demande">📣 Demande groupée</button>
+    <button data-go-view="vol">🚨 Signaler un vol</button>
+    <button data-go-view="admin" id="sheet-admin" hidden>🛡 Vérification</button>
+    <a href="offres.html">⭐ Offres pros</a>
+    <button id="sheet-lang">🌺 Reo Tahiti / Français</button>
+  </div>
 
   <main>
     <!-- ===== CHERCHER ===== -->
@@ -194,10 +210,10 @@
     <span id="foot-mode"></span></p>
   </footer>
 
-  <script src="config.js?v=7"></script>
-  <script src="icons.js?v=7"></script>
-  <script src="data.js?v=7"></script>
-  <script src="backend.js?v=7"></script>
-  <script src="app.js?v=7"></script>
+  <script src="config.js?v=8"></script>
+  <script src="icons.js?v=8"></script>
+  <script src="data.js?v=8"></script>
+  <script src="backend.js?v=8"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>

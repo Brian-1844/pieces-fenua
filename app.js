@@ -61,11 +61,23 @@
 
   // ---------- navigation ----------
   const go = view => {
-    $$(".tabs button").forEach(x => x.classList.toggle("on", x.dataset.view === view));
+    $$(".tabs button[data-view]").forEach(x => x.classList.toggle("on", x.dataset.view === view));
+    // sur mobile, une vue secondaire allume le bouton « Plus »
+    $("#btn-plus").classList.toggle("on", ["demande", "vol", "admin"].includes(view));
+    fermerPlus();
     $$(".view").forEach(v => v.classList.toggle("on", v.id === "v-" + view));
     render(); window.scrollTo({ top: 0 });
   };
-  $$(".tabs button").forEach(b => b.addEventListener("click", () => go(b.dataset.view)));
+  $$(".tabs button[data-view]").forEach(b => b.addEventListener("click", () => go(b.dataset.view)));
+  function fermerPlus() { $("#plus-sheet").hidden = true; $("#btn-plus").setAttribute("aria-expanded", "false"); }
+  $("#btn-plus").addEventListener("click", e => {
+    e.stopPropagation();
+    const ouvert = $("#plus-sheet").hidden;
+    $("#plus-sheet").hidden = !ouvert; $("#btn-plus").setAttribute("aria-expanded", String(ouvert));
+  });
+  $$("#plus-sheet [data-go-view]").forEach(b => b.addEventListener("click", () => go(b.dataset.goView)));
+  $("#sheet-lang").addEventListener("click", () => window.PF_setLang && window.PF_setLang(window.PF_LANG === "ty" ? "fr" : "ty"));
+  document.addEventListener("click", e => { if (!e.target.closest("#plus-sheet")) fermerPlus(); });
   $("#btn-compte").addEventListener("click", () => go("compte"));
 
   // ---------- listes déroulantes ----------
@@ -115,19 +127,38 @@
     return `<span class="no">● ${a.commande ? "Sur commande " + esc(a.commande) : "Rupture"}</span>`;
   }
 
+  // ---- lien direct vers une annonce : …/#a=<id> ----
+  let focusId = null;
+  const lireHash = () => { const m = location.hash.match(/^#a=([\w-]+)$/); focusId = m ? m[1] : null; };
+  lireHash();
+  window.addEventListener("hashchange", () => { lireHash(); go("chercher"); });
+  const lienAnnonce = a => location.origin + location.pathname + "#a=" + encodeURIComponent(a.id);
+  async function partager(a, btn) {
+    const url = lienAnnonce(a), texte = `${a.nom} — ${prix(a.prix)} chez ${a.vendeur} (${a.commune}) sur Pièce Fenua`;
+    try {
+      if (navigator.share) { await navigator.share({ title: a.nom, text: texte, url }); return; }
+      await navigator.clipboard.writeText(url);
+      btn.textContent = "✔ Lien copié";
+    } catch (e) { if (e && e.name !== "AbortError") window.prompt("Copie ce lien :", url); }
+  }
+
   const peutReserver = a => a.qte > 0 && a.owner && !String(a.owner).startsWith("demo-") && a.owner !== user()?.id;
 
   function renderResults() {
     const q = norm($("#q").value).split(/\s+/).filter(Boolean);
     const etat = $("#f-etat").value, ile = $("#f-ile").value, stock = $("#f-stock").checked, tri = $("#f-tri").value;
-    const list = annonces.filter(a =>
+    const list = focusId ? annonces.filter(a => a.id === focusId && a.statut === "publie" && !estVole(a.serie)) : annonces.filter(a =>
       a.statut === "publie" && !estVole(a.serie) &&
       (!catSel || a.cat === catSel) && (!etat || a.etat === etat) && (!ile || a.ile === ile) && (!stock || a.qte > 0) &&
       q.every(w => norm([a.nom, a.compat, a.ref, a.vendeur, a.commune, catNom(a.cat)].join(" ")).includes(w)))
       .sort(tri === "prix" ? (x, y) => x.prix - y.prix : (x, y) => y.maj - x.maj)
       .sort((x, y) => (y.offre === "premium") - (x.offre === "premium"));   // premium = à la une
 
-    $("#count").textContent = list.length + (list.length > 1 ? " pièces trouvées" : " pièce trouvée");
+    $("#count").innerHTML = focusId
+      ? (list.length ? "Annonce partagée · " : "Cette annonce n'est plus disponible · ") + `<button class="link" id="voir-tout">Voir toutes les pièces</button>`
+      : esc(list.length + (list.length > 1 ? " pièces trouvées" : " pièce trouvée"));
+    const vt = $("#voir-tout");
+    if (vt) vt.onclick = () => { focusId = null; history.replaceState(null, "", location.pathname); renderResults(); };
     $("#results").innerHTML = list.length ? list.map(a => `
       <article class="card has-img${a.offre === "premium" ? " une" : ""}">${a.offre === "premium" ? `<span class="une-tag">À la une</span>` : ""}${thumb(a)}<div class="body">
         <div class="h"><div class="t">${esc(a.nom)}</div><div class="p">${prix(a.prix)}</div></div>
@@ -137,12 +168,14 @@
         <div class="actions">
           <a class="btn g" href="${waLink(a.tel)}" target="_blank" rel="noopener">💬 WhatsApp</a>
           <a class="btn b" href="tel:${telDigits(a.tel)}">📞 Appeler</a>
+          <button class="btn ghost" data-share="${esc(a.id)}">🔗 Partager</button>
         </div>
         ${peutReserver(a) ? `<button class="btn" data-resa="${esc(a.id)}">🛒 Réserver</button><div class="resa-box"></div>` : ""}
         <button class="link sig" data-sig="${esc(a.id)}">⚑ Signaler cette annonce</button>
         <div class="sig-box"></div>
       </div></article>`).join("")
       : `<div class="empty">Aucune pièce trouvée.<br><br><button class="btn" id="go-demande">📣 Lancer une demande à tous les fournisseurs</button></div>`;
+    $$("[data-share]").forEach(b => b.onclick = () => partager(annonces.find(x => x.id === b.dataset.share), b));
     $$("[data-resa]").forEach(b => b.onclick = () => {
       if (!user()) return go("compte");
       const box = b.nextElementSibling, a = annonces.find(x => x.id === b.dataset.resa);
@@ -199,7 +232,8 @@
     const p = profil();
     $("#btn-compte").textContent = logged ? "👤 " + (p?.nom || user().email) : "👤 Connexion";
     const nbCmd = user() ? reservations.filter(r => r.vendeur === user().id && r.statut === "en_attente").length : 0;
-    $("#tab-cmd").textContent = "🧾 Commandes" + (nbCmd ? ` (${nbCmd})` : "");
+    const nb = $("#tab-cmd .nb"); nb.hidden = !nbCmd; nb.textContent = nbCmd || "";
+    $("#sheet-admin").hidden = !(logged && B.isModerateur()) && B.mode !== "demo";
     $("#tab-admin").hidden = !(logged && B.isModerateur()) && B.mode !== "demo";
   }
 
