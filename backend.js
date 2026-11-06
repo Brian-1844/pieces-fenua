@@ -143,6 +143,30 @@ function supabaseBackend(cfg) {
     },
 
 
+
+    // ---- mes pièces ----
+    async updateAnnonce(id, champs) {
+      const { error } = await sb.from("annonces").update(champs).eq("id", id); err(error);
+    },
+    async deleteAnnonce(a) {
+      const m = String(a.photo_url || "").split("/object/public/photos/")[1];
+      if (m) await sb.storage.from("photos").remove([decodeURIComponent(m)]);
+      if (a.justif_path) await sb.storage.from("justificatifs").remove([a.justif_path]);
+      const { error } = await sb.from("annonces").delete().eq("id", a.id); err(error);
+    },
+    // ---- réservations / commandes ----
+    async reserver(annonceId, qte, message, tel) {
+      const { error } = await sb.from("reservations").insert({ annonce_id: annonceId, qte, message: message || null, tel: tel || null });
+      err(error);
+    },
+    async listReservations() {
+      if (!user) return [];
+      const { data, error } = await sb.from("reservations").select("*").order("created_at", { ascending: false }).limit(300);
+      err(error); return (data || []).map(r => ({ ...r, date: new Date(r.created_at).getTime() }));
+    },
+    async majReservation(id, statut) {
+      const { error } = await sb.from("reservations").update({ statut }).eq("id", id); err(error);
+    },
     // ---- signalements & suspension ----
     async signaler(annonceId, motif, details) {
       const { error } = await sb.from("signalements").insert({ annonce_id: annonceId, motif, details: details || null }); err(error);
@@ -213,6 +237,7 @@ function localBackend() {
   let vols = get("vols", null) || DEMO_VOLS.map(v => ({ ...v }));
   let demandes = get("demandes", []);
   let signalements = get("signalements", []);
+  let reservations = get("reservations", []);
   // en démo, les annonces d'exemple sans propriétaire reçoivent un propriétaire fictif (pour tester la suspension)
   annonces.forEach(a => { if (!a.owner) a.owner = "demo-" + a.tel; });
   let session = get("session", null);
@@ -336,6 +361,42 @@ function localBackend() {
     },
 
 
+
+    // ---- mes pièces ----
+    async updateAnnonce(id, champs) {
+      const a = annonces.find(x => x.id === id);
+      if (!a || a.owner !== user()?.id) fail("Accès refusé.");
+      if (a.etat === "occasion" && champs.prix >= PF_SEUIL && a.prix < PF_SEUIL && (!PF_normSerie(a.serie) || !a.justif_path))
+        fail("À partir de 50 000 F : n° de série et justificatif obligatoires. Crée une nouvelle annonce.");
+      Object.assign(a, champs, { maj: Date.now() });
+      saveAll();
+    },
+    async deleteAnnonce(a) { annonces = annonces.filter(x => x.id !== a.id); reservations = reservations.filter(r => r.annonce_id !== a.id); saveAll(); },
+    // ---- réservations / commandes ----
+    async reserver(annonceId, qte, message, tel) {
+      const a = annonces.find(x => x.id === annonceId), p = profil();
+      if (!a || a.statut !== "publie") fail("Cette pièce n'est plus disponible.");
+      if (!a.owner || String(a.owner).startsWith("demo-")) fail("Ce vendeur ne prend pas de réservation : contacte-le directement.");
+      if (a.owner === user().id) fail("Tu ne peux pas réserver ta propre pièce.");
+      if (p?.suspendu) fail("Compte suspendu.");
+      if (qte > a.qte) fail(`Stock insuffisant : ${a.qte} disponible(s).`);
+      reservations.unshift({ id: "r" + Date.now(), annonce_id: a.id, acheteur: user().id, vendeur: a.owner, qte, message,
+        nom: p?.nom || "Client", tel: tel || p?.tel, piece_nom: a.nom, prix: a.prix, statut: "en_attente", date: Date.now() });
+      set("reservations", reservations);
+    },
+    async listReservations() {
+      const me = user()?.id; if (!me) return [];
+      return reservations.filter(r => r.acheteur === me || r.vendeur === me);
+    },
+    async majReservation(id, statut) {
+      const r = reservations.find(x => x.id === id), me = user()?.id;
+      const ok = (me === r.vendeur && ((r.statut === "en_attente" && ["acceptee", "refusee"].includes(statut)) || (r.statut === "acceptee" && ["terminee", "annulee"].includes(statut))))
+              || (me === r.acheteur && ["en_attente", "acceptee"].includes(r.statut) && statut === "annulee");
+      if (!ok) fail("Changement de statut impossible.");
+      r.statut = statut;
+      if (statut === "terminee") { const a = annonces.find(x => x.id === r.annonce_id); if (a) a.qte = Math.max(0, a.qte - r.qte); }
+      saveAll(); set("reservations", reservations);
+    },
     // ---- signalements & suspension ----
     async signaler(annonceId, motif, details) {
       if (profil()?.suspendu) fail("Compte suspendu.");

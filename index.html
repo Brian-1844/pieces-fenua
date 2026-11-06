@@ -28,6 +28,7 @@
     <button data-view="chercher" class="on">🔍 Chercher</button>
     <button data-view="demande">📣 Demande</button>
     <button data-view="vendre">📦 Vendre</button>
+    <button data-view="commandes" id="tab-cmd">🧾 Commandes</button>
     <button data-view="vol">🚨 Signaler un vol</button>
     <button data-view="compte">👤 Compte</button>
     <button data-view="admin" id="tab-admin" hidden>🛡 Vérification</button>
@@ -128,8 +129,22 @@
         <p id="vendre-msg" class="msg" role="status"></p>
       </form>
 
-      <h3 class="logged-only">Mes annonces</h3>
+      <h3 class="logged-only">📦 Mes pièces en vente</h3>
+      <p class="muted logged-only">Modifie le prix ou le stock, marque une pièce comme vendue ou supprime-la.</p>
       <div id="mes-annonces" class="logged-only"></div>
+    </section>
+
+    <!-- ===== COMMANDES ===== -->
+    <section id="v-commandes" class="view">
+      <div class="need-login"></div>
+      <div class="logged-only">
+        <h2>🧾 Commandes reçues</h2>
+        <p class="muted">Les clients qui ont réservé une de tes pièces. Accepte, puis marque « Remise au client » : le stock baisse tout seul.</p>
+        <div id="cmd-recues"></div>
+        <h2>🛒 Mes réservations</h2>
+        <p class="muted">Les pièces que tu as réservées chez un vendeur.</p>
+        <div id="cmd-mes"></div>
+      </div>
     </section>
 
     <!-- ===== SIGNALER UN VOL ===== -->

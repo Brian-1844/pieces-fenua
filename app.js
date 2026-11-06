@@ -48,7 +48,10 @@
     ? `<img class="thumb" src="${esc(a.photo_url)}" alt="${esc(a.nom)}" loading="lazy">`
     : `<div class="thumb">${(window.ICONS || {})[a.cat] || ""}</div>`;
 
-  let annonces = [], vols = [], demandes = [], recovery = false;
+  let annonces = [], vols = [], demandes = [], reservations = [], recovery = false;
+  const STATUTS_CMD = {
+    en_attente: ["⏳ En attente du vendeur", "b-attente"], acceptee: ["✔ Acceptée — à récupérer", "b-verif"],
+    refusee: ["✖ Refusée", "b-refus"], terminee: ["✅ Remise au client", "b-neuf"], annulee: ["Annulée", "b-refus"] };
   const user = () => B.user();
   const profil = () => B.profil();
   const profilComplet = () => { const p = profil(); return !!(p && p.nom && p.tel && p.commune); };
@@ -75,8 +78,9 @@
   // ---------- chargement des données ----------
   async function reload() {
     try {
-      [annonces, vols, demandes] = await Promise.all([
-        B.listAnnonces(), user() ? B.listVols() : [], user() ? B.listDemandes() : []]);
+      [annonces, vols, demandes, reservations] = await Promise.all([
+        B.listAnnonces(), user() ? B.listVols() : [], user() ? B.listDemandes() : [],
+        user() ? B.listReservations() : []]);
     } catch (e) { console.error(e); }
     render();
   }
@@ -111,6 +115,8 @@
     return `<span class="no">● ${a.commande ? "Sur commande " + esc(a.commande) : "Rupture"}</span>`;
   }
 
+  const peutReserver = a => a.qte > 0 && a.owner && !String(a.owner).startsWith("demo-") && a.owner !== user()?.id;
+
   function renderResults() {
     const q = norm($("#q").value).split(/\s+/).filter(Boolean);
     const etat = $("#f-etat").value, ile = $("#f-ile").value, stock = $("#f-stock").checked, tri = $("#f-tri").value;
@@ -132,10 +138,30 @@
           <a class="btn g" href="${waLink(a.tel)}" target="_blank" rel="noopener">💬 WhatsApp</a>
           <a class="btn b" href="tel:${telDigits(a.tel)}">📞 Appeler</a>
         </div>
+        ${peutReserver(a) ? `<button class="btn" data-resa="${esc(a.id)}">🛒 Réserver</button><div class="resa-box"></div>` : ""}
         <button class="link sig" data-sig="${esc(a.id)}">⚑ Signaler cette annonce</button>
         <div class="sig-box"></div>
       </div></article>`).join("")
       : `<div class="empty">Aucune pièce trouvée.<br><br><button class="btn" id="go-demande">📣 Lancer une demande à tous les fournisseurs</button></div>`;
+    $$("[data-resa]").forEach(b => b.onclick = () => {
+      if (!user()) return go("compte");
+      const box = b.nextElementSibling, a = annonces.find(x => x.id === b.dataset.resa);
+      if (box.innerHTML) { box.innerHTML = ""; return; }
+      box.innerHTML = `<form class="form resa-form">
+        <div class="two"><label>Quantité<input name="qte" type="number" min="1" max="${a.qte}" value="1" required></label>
+        <label>Ton téléphone<input name="tel" inputmode="tel" value="${esc(profil()?.tel || "")}" required></label></div>
+        <input name="message" maxlength="300" placeholder="Message au vendeur (facultatif) : jour de passage…">
+        <button class="btn">Envoyer la réservation</button><p class="msg"></p></form>`;
+      const f = $("form", box);
+      f.onsubmit = e => { e.preventDefault();
+        busy($("button", f), async () => {
+          try {
+            await B.reserver(a.id, Number(f.qte.value), f.message.value, f.tel.value);
+            box.innerHTML = `<p class="msg okm">✔ Réservation envoyée ! Le vendeur va la confirmer. Suis-la dans l'onglet 🧾 Commandes.</p>`;
+            reservations = await B.listReservations(); renderGates();
+          } catch (er) { setMsg($(".msg", f), er.message); }
+        }); };
+    });
     $$("[data-sig]").forEach(b => b.onclick = () => {
       if (!user()) return go("compte");
       const box = b.nextElementSibling;
@@ -172,6 +198,8 @@
     $$("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));
     const p = profil();
     $("#btn-compte").textContent = logged ? "👤 " + (p?.nom || user().email) : "👤 Connexion";
+    const nbCmd = user() ? reservations.filter(r => r.vendeur === user().id && r.statut === "en_attente").length : 0;
+    $("#tab-cmd").textContent = "🧾 Commandes" + (nbCmd ? ` (${nbCmd})` : "");
     $("#tab-admin").hidden = !(logged && B.isModerateur()) && B.mode !== "demo";
   }
 
@@ -425,11 +453,84 @@
   }
   function renderMesAnnonces() {
     const mine = user() ? annonces.filter(a => a.owner === user().id) : [];
+    const enCours = id => reservations.filter(r => r.annonce_id === id && ["en_attente", "acceptee"].includes(r.statut)).length;
     $("#mes-annonces").innerHTML = mine.length ? mine.map(a => `
-      <div class="card has-img">${thumb(a)}<div class="body"><div class="h"><div class="t">${esc(a.nom)}</div><div class="p">${prix(a.prix)}</div></div>
-      <div class="m">${a.etat === "neuf" ? "Neuf" : "Occasion"} · Qté ${a.qte}</div>
-      ${statutBadge(a)}${a.motif ? `<div class="m">Motif : ${esc(a.motif)}</div>` : ""}</div></div>`).join("")
-      : `<p class="muted">Tu n'as pas encore d'annonce.</p>`;
+      <div class="card has-img">${thumb(a)}<div class="body">
+        <div class="h"><div class="t">${esc(a.nom)}</div><div class="p">${prix(a.prix)}</div></div>
+        <div class="m">${a.etat === "neuf" ? "Neuf" : "Occasion"} · ${stockTxt(a)} · mis à jour ${depuis(a.maj)}</div>
+        ${statutBadge(a)}${enCours(a.id) ? `<span class="badge b-attente">🧾 ${enCours(a.id)} réservation(s) en cours</span>` : ""}
+        ${a.motif ? `<div class="m">Motif : ${esc(a.motif)}</div>` : ""}
+        <div class="actions">
+          <button class="btn ghost" data-edit="${esc(a.id)}">✏️ Modifier</button>
+          ${a.qte > 0 ? `<button class="btn ghost" data-vendu="${esc(a.id)}">✔ Marquer vendue</button>` : ""}
+          <button class="btn ghost" data-del="${esc(a.id)}">🗑 Supprimer</button>
+        </div>
+        <div class="edit-box"></div>
+      </div></div>`).join("")
+      : `<p class="muted">Tu n'as pas encore de pièce en vente.</p>`;
+
+    const trouve = id => annonces.find(x => x.id === id);
+    $$("[data-edit]").forEach(b => b.onclick = () => {
+      const a = trouve(b.dataset.edit), box = b.closest(".body").querySelector(".edit-box");
+      if (box.innerHTML) { box.innerHTML = ""; return; }
+      box.innerHTML = `<form class="form edit-form">
+        <div class="two"><label>Prix (F CFP)<input name="prix" type="number" min="0" step="50" value="${a.prix}" required></label>
+        <label>Quantité en stock<input name="qte" type="number" min="0" value="${a.qte}" required></label></div>
+        <label>Compatible avec<input name="compat" value="${esc(a.compat)}"></label>
+        <label>Délai si rupture (ex. « 10 jours »)<input name="commande" value="${esc(a.commande || "")}"></label>
+        <button class="btn b">Enregistrer</button><p class="msg"></p></form>`;
+      const f = $("form", box);
+      f.onsubmit = e => { e.preventDefault();
+        busy($("button", f), async () => {
+          try { await B.updateAnnonce(a.id, { prix: Number(f.prix.value), qte: Number(f.qte.value), compat: f.compat.value, commande: f.commande.value || null }); await reload(); }
+          catch (er) { setMsg($(".msg", f), er.message); }
+        }); };
+    });
+    $$("[data-vendu]").forEach(b => b.onclick = () => busy(b, async () => {
+      try { await B.updateAnnonce(b.dataset.vendu, { qte: 0 }); await reload(); } catch (er) { alert(er.message); }
+    }));
+    $$("[data-del]").forEach(b => b.onclick = () => {
+      const a = trouve(b.dataset.del);
+      if (!window.confirm(`Supprimer définitivement « ${a.nom} » ?`)) return;
+      busy(b, async () => { try { await B.deleteAnnonce(a); await reload(); } catch (er) { alert(er.message); } });
+    });
+  }
+
+  // =====================================================================
+  //  COMMANDES (réservations)
+  // =====================================================================
+  function carteCommande(r, cote) {
+    const [lib, cls] = STATUTS_CMD[r.statut] || [r.statut, "b-neuf"];
+    const a = annonces.find(x => x.id === r.annonce_id);
+    const autreTel = cote === "vendeur" ? r.tel : a?.tel;
+    let actions = "";
+    if (cote === "vendeur" && r.statut === "en_attente")
+      actions = `<button class="btn g" data-cmd="${esc(r.id)}" data-st="acceptee">✔ Accepter</button>
+                 <button class="btn red" data-cmd="${esc(r.id)}" data-st="refusee">✖ Refuser</button>`;
+    else if (cote === "vendeur" && r.statut === "acceptee")
+      actions = `<button class="btn b" data-cmd="${esc(r.id)}" data-st="terminee">✅ Remise au client</button>
+                 <button class="btn ghost" data-cmd="${esc(r.id)}" data-st="annulee">Annuler</button>`;
+    else if (cote === "acheteur" && ["en_attente", "acceptee"].includes(r.statut))
+      actions = `<button class="btn ghost" data-cmd="${esc(r.id)}" data-st="annulee">Annuler ma réservation</button>`;
+    return `<div class="card">
+      <div class="h"><div class="t">${esc(r.piece_nom)} × ${r.qte}</div><div class="p">${prix((r.prix || 0) * r.qte)}</div></div>
+      <div class="m">${cote === "vendeur" ? `Client : <b>${esc(r.nom)}</b>` : `Vendeur : <b>${esc(a?.vendeur || "—")}</b>${a ? " · " + esc(a.commune) + ", " + esc(a.ile) : ""}`} · ${depuis(r.date)}</div>
+      ${r.message ? `<div class="m">💬 « ${esc(r.message)} »</div>` : ""}
+      <span class="badge ${cls}">${lib}</span>
+      <div class="actions">${actions}
+        ${autreTel ? `<a class="btn g" href="${waLink(autreTel)}" target="_blank" rel="noopener">💬 WhatsApp</a>` : ""}</div>
+    </div>`;
+  }
+  function renderCommandes() {
+    if (!user()) return;
+    const me = user().id;
+    const recues = reservations.filter(r => r.vendeur === me), mes = reservations.filter(r => r.acheteur === me);
+    $("#cmd-recues").innerHTML = recues.length ? recues.map(r => carteCommande(r, "vendeur")).join("") : `<p class="muted">Aucune commande reçue pour l'instant.</p>`;
+    $("#cmd-mes").innerHTML = mes.length ? mes.map(r => carteCommande(r, "acheteur")).join("") : `<p class="muted">Tu n'as pas encore réservé de pièce.</p>`;
+    $$("[data-cmd]").forEach(b => b.onclick = () => {
+      if (b.dataset.st === "annulee" && !window.confirm("Annuler cette réservation ?")) return;
+      busy(b, async () => { try { await B.majReservation(b.dataset.cmd, b.dataset.st); await reload(); } catch (er) { alert(er.message); } });
+    });
   }
 
   // =====================================================================
@@ -591,7 +692,7 @@
   // ---------- rendu global ----------
   function render() {
     renderGates(); renderResults(); renderCompte(); renderVendreGate();
-    renderMesAnnonces(); renderDemandes(); renderVols(); renderAdmin();
+    renderMesAnnonces(); renderCommandes(); renderDemandes(); renderVols(); renderAdmin();
   }
   const renderAll = render;
   await reload();
